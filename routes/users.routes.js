@@ -1,58 +1,75 @@
 const express = require('express');
-const router = express.Router();
 
 
 const UsersServices = require('../services/users.services');
+const { validatorHandler } = require('../middlewares/validator.handler');
+const { updateUserSchema, createUserSchema, getUserSchema } = require('./../schemas/user.schema');
+
 const service = new UsersServices();
+const router = express.Router();
 
-// GET ALL
+
 router.get('/', async (req, res, next) => {
-    try {
-        const users = await service.find();
-        res.json(users); 
-    } catch (error) {
-        next(error)
-    }
-});
-
-// GET ONE USER
-router.get('/:id', (req, res) => {
-    const { id } = req.params;
-    const users = service.findOne(id);
+  try {
+    const users = await service.find();
     res.json(users);
+  } catch (error) {
+    next(error);
+  }
 });
 
-// CREATE
-router.post('/', (req, res) => {
-    const body = req.body;
-    const newUser = service.create(body);
-    res.status(201).json({
-        message: 'create',
-        data: newUser
-    })
-});
+router.get('/:id',
+  validatorHandler(getUserSchema, 'params'),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const category = await service.findOne(id);
+      res.json(category);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-// UPDATE ONE ITEM
-router.patch('/:id', (req, res) => {
-    const { id } = req.params;
-    const body = req.body;
-    const user = service.update(id, body);
-    res.json({
-        message: 'update',
-        data: user
-    })
-});
+router.post('/',
+  validatorHandler(createUserSchema, 'body'),
+  async (req, res, next) => {
+    try {
+      const body = req.body;
+      const newCategory = await service.create(body);
+      res.status(201).json(newCategory);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-// DELETE ONE ITEM
-router.delete('/:id', (req, res) => {
-    const { id } = req.params;
-    const response = service.delete(id);
-    res.json({
-        message: 'delete',
-        response
-    })
-});
+router.patch('/:id',
+  validatorHandler(getUserSchema, 'params'),
+  validatorHandler(updateUserSchema, 'body'),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const body = req.body;
+      const category = await service.update(id, body);
+      res.json(category);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
+router.delete('/:id',
+  validatorHandler(getUserSchema, 'params'),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      await service.delete(id);
+      res.status(201).json({id});
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-
-module.exports = router
+module.exports = router;

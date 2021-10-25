@@ -1,16 +1,15 @@
 /* eslint-disable no-console */
 const faker = require('faker');
 /* const { getConnection } = require('../libs/postgres'); */
-const { pool } = require('../libs/postgres.pool');
-
+/* const { pool } = require('../libs/postgres.pool'); */
+const { models } = require('../libs/sequelize');
+const boom = require('@hapi/boom');
 
 
 class UsersServices{
     constructor(){
         this.users = []
         this.generate();
-        this.pool = pool;
-        this.pool.on('error', (err) => console.log(err));
     }
 
     generate(){
@@ -28,48 +27,33 @@ class UsersServices{
     }
 
     async find(){
-        const query = 'SELECT * FROM tasks'
-        const rta = await this.pool.query(query);
-        return rta.rows;
-        /* const client = await getConnection()
-        const rta = await client.query('SELECT * FROM tasks');
-        return rta.rows; */
+        const rta = await models.User.findAll();
+        return rta;
     }
 
-    findOne(id){
-        return this.users.find(item => item.id === id);
-    }
-
-    create(data){
-        const newUser = {
-            id: faker.datatype.uuid(),
-            ...data
+    async findOne(id){
+        const user = await models.User.findByPk(id);
+        if (!user) {
+           throw boom.notFound('User not found'); 
         }
-        this.users.push(newUser);
+        return user;
+    }
+
+    async create(data){
+        const newUser = await models.User.create(data);
         return newUser;
     }
 
-    update(id, changes){
-        const index = this.users.findIndex(item => item.id === id);
-        if (index === -1) {
-            throw new Error('User not found');
-        }
-        const user = this.users[index];
-        this.users[index] = {
-            ...user,
-            ...changes,
-        };
-        return this.users[index];
-
+    async update(id, changes) {
+        const user = await this.findOne(id);
+        const rta = await user.update(changes);
+        return rta;
     }
 
-    delete(id){
-        const index = this.users.findIndex(item => item.id === id);
-        if (index === -1) {
-            throw new Error('User not found');
-        }
-        this.users.splice(index, 1);
-        return { id }
+    async delete(id){
+        const user = await models.User.findByPk(id);
+        await user.destroy();
+        return { id };
     }
 
 
